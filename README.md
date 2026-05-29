@@ -1,6 +1,6 @@
 # Wordle Solver
 
-An interactive CLI tool that narrows down possible Wordle answers based on your guesses and their feedback.
+A tool that narrows down possible Wordle answers based on your guesses and their feedback. Available as a CLI or a web app.
 
 ## Features
 
@@ -8,6 +8,7 @@ An interactive CLI tool that narrows down possible Wordle answers based on your 
 - **Duplicate Letter Handling** — correctly handles cases where a letter appears multiple times (e.g., a letter marked yellow in two different positions but only exists once in the target)
 - **Auto-Solve** — shows remaining possibilities after each guess entry
 - **Undo/Reset** — made a typo? undo your last guess or reset entirely
+- **Web App** — visual tile-based interface with click-to-toggle colors and real-time filtering
 
 ## How It Works
 
@@ -21,7 +22,16 @@ The solver tracks four types of constraints from your guesses:
 
 For duplicate letters: if you guess a word with repeated letters and some are green/yellow while others are grey, the solver infers the exact count of that letter in the target.
 
-## Setup
+## Web App
+
+```bash
+cd wordle-solver
+python -m http.server
+```
+
+Open http://localhost:8000 — type a word, press Enter, then click each tile to toggle its color (grey → yellow → green). Results update in real time.
+
+## CLI
 
 ```bash
 python solver.py
@@ -29,7 +39,7 @@ python solver.py
 
 No dependencies required — pure Python 3.
 
-## Usage
+## CLI Usage
 
 Enter each guess as `word feedback` where feedback uses:
 - `g` = green (correct position)
