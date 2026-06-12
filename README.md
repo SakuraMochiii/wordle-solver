@@ -31,6 +31,9 @@ python -m http.server
 
 Open http://localhost:8000 — type a word, press Enter, then click each tile to toggle its color (grey → yellow → green). Results update in real time.
 
+- **Auto-Coloring** — new guesses are automatically colored based on previous constraints (known greens stay green, confirmed letters get yellow). Just adjust what's wrong.
+- **Click-to-Queue** — click any word in the results to load it into the input. Click a different one to replace it. Press Enter to submit.
+
 ## CLI
 
 ```bash
