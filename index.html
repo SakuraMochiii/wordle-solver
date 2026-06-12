@@ -210,6 +210,11 @@
             box-shadow: 0 0 0 3px #538d4e20;
         }
 
+        .word-input.queued {
+            border-color: var(--yellow);
+            box-shadow: 0 0 0 3px #b59f3b20;
+        }
+
         .word-input::placeholder {
             color: var(--text-muted);
             text-transform: none;
@@ -366,6 +371,7 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--text);
+            cursor: pointer;
             animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
             transition: background 0.15s ease, border-color 0.15s ease;
         }
@@ -373,6 +379,12 @@
         .result-word:hover {
             background: var(--bg-elevated);
             border-color: var(--green);
+        }
+
+        .result-word.selected {
+            background: var(--bg-elevated);
+            border-color: var(--green);
+            box-shadow: 0 0 12px #538d4e30;
         }
 
         @keyframes fadeUp {
@@ -502,8 +514,8 @@
     <script>
     let WORDS = [];
     let guesses = []; // [{word: string, feedback: ['grey'|'yellow'|'green', ...]}]
+    let queuedWord = null;
 
-    // Load words from adjacent file
     async function loadWords() {
         try {
             const response = await fetch('words.txt');
@@ -591,6 +603,50 @@
         }).sort();
     }
 
+    // Auto-color a new word based on existing constraints from previous guesses
+    function autoColorWord(word) {
+        const feedback = ['grey', 'grey', 'grey', 'grey', 'grey'];
+        if (guesses.length === 0) return feedback;
+
+        const constraints = buildConstraints(guesses);
+        const {green, yellow, minCounts, maxCounts} = constraints;
+
+        // Green: if we know position i must be letter X and this word has X there
+        for (let i = 0; i < 5; i++) {
+            if (green[i] && word[i] === green[i]) {
+                feedback[i] = 'green';
+            }
+        }
+
+        // Yellow: if a letter is confirmed to be in the word (minCounts > 0)
+        // and it's NOT in a known green position, mark it yellow.
+        // But respect maxCounts — don't mark more than max as yellow.
+        for (let i = 0; i < 5; i++) {
+            if (feedback[i] === 'green') continue;
+            const ch = word[i];
+            const minCount = minCounts[ch] || 0;
+            if (minCount > 0) {
+                // Count how many of this letter we've already colored green/yellow
+                let alreadyColored = 0;
+                for (let j = 0; j < 5; j++) {
+                    if (j === i) continue;
+                    if (word[j] === ch && (feedback[j] === 'green' || feedback[j] === 'yellow')) {
+                        alreadyColored++;
+                    }
+                }
+                const maxCount = maxCounts[ch] !== undefined ? maxCounts[ch] : Infinity;
+                if (alreadyColored < maxCount && alreadyColored < minCount) {
+                    feedback[i] = 'yellow';
+                }
+            }
+        }
+
+        // Grey: if maxCounts for a letter is 0, any instance should stay grey (already default)
+        // If maxCounts is set and we've already colored enough, the rest stay grey (already handled above)
+
+        return feedback;
+    }
+
     function solve() {
         if (guesses.length === 0 || WORDS.length === 0) {
             renderEmptyState();
@@ -634,10 +690,31 @@
 
         tile.dataset.state = states[nextIdx];
         tile.classList.remove('flip');
-        void tile.offsetWidth; // reflow
+        void tile.offsetWidth;
         tile.classList.add('flip');
 
         solve();
+    }
+
+    function queueWord(word) {
+        const input = document.getElementById('wordInput');
+        queuedWord = word;
+        input.value = word;
+        input.classList.add('queued');
+
+        // Highlight the selected result word
+        document.querySelectorAll('.result-word').forEach(el => {
+            el.classList.toggle('selected', el.textContent === word);
+        });
+    }
+
+    function clearQueue() {
+        queuedWord = null;
+        const input = document.getElementById('wordInput');
+        input.classList.remove('queued');
+        document.querySelectorAll('.result-word.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
     }
 
     function renderResults(results) {
@@ -661,7 +738,8 @@
         `;
 
         shown.forEach((word, i) => {
-            html += `<div class="result-word" style="animation-delay: ${Math.min(i * 15, 600)}ms">${word}</div>`;
+            const selected = word === queuedWord ? ' selected' : '';
+            html += `<div class="result-word${selected}" data-word="${word}" style="animation-delay: ${Math.min(i * 15, 600)}ms">${word}</div>`;
         });
 
         html += `</div>`;
@@ -671,6 +749,11 @@
         }
 
         section.innerHTML = html;
+
+        // Attach click handlers to result words
+        section.querySelectorAll('.result-word').forEach(el => {
+            el.addEventListener('click', () => queueWord(el.dataset.word));
+        });
     }
 
     function renderEmptyState() {
@@ -720,12 +803,15 @@
             return;
         }
 
+        const feedback = autoColorWord(word);
+
         guesses.push({
             word: word,
-            feedback: ['grey', 'grey', 'grey', 'grey', 'grey']
+            feedback: feedback
         });
 
         input.value = '';
+        clearQueue();
         input.focus();
         renderGuessGrid();
         solve();
@@ -738,6 +824,7 @@
         }
         const removed = guesses.pop();
         showToast(`Removed: ${removed.word.toUpperCase()}`);
+        clearQueue();
         renderGuessGrid();
         solve();
         if (guesses.length === 0) updateStatus();
@@ -746,6 +833,7 @@
     function reset() {
         if (guesses.length === 0) return;
         guesses = [];
+        clearQueue();
         renderGuessGrid();
         renderEmptyState();
         updateStatus();
@@ -764,9 +852,12 @@
         }
     });
 
-    // Only allow letters in input
+    // Clear queued state when user manually types
     document.getElementById('wordInput').addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '');
+        if (queuedWord && e.target.value.toLowerCase() !== queuedWord) {
+            clearQueue();
+        }
     });
 
     // Init
