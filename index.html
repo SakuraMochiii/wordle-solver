@@ -554,6 +554,15 @@
                 }
             }
 
+            // A grey tile on a letter that also has confirmed copies means
+            // the target doesn't have that letter at the grey position either
+            for (let i = 0; i < 5; i++) {
+                const ch = word[i];
+                if (feedback[i] === 'grey' && (letterConfirmed[ch] || 0) > 0) {
+                    yellow[i].add(ch);
+                }
+            }
+
             const uniqueLetters = new Set(word.split(''));
             for (const ch of uniqueLetters) {
                 const confirmed = letterConfirmed[ch] || 0;

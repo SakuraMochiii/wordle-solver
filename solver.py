@@ -87,6 +87,11 @@ def build_constraints(guesses):
             else:
                 letter_greyed[ch] = letter_greyed.get(ch, 0) + 1
 
+        # Grey on a duplicate letter also excludes that position
+        for i, (ch, fb) in enumerate(zip(word, feedback)):
+            if fb == 'grey' and letter_confirmed.get(ch, 0) > 0:
+                yellow[i].add(ch)
+
         for ch in set(word):
             confirmed = letter_confirmed.get(ch, 0)
             greyed = letter_greyed.get(ch, 0)

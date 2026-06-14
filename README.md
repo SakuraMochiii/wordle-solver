@@ -20,7 +20,7 @@ The solver tracks four types of constraints from your guesses:
 | Yellow (y) | Correct letter, wrong position | Letter is in the word but NOT at this position |
 | Grey (x) | Letter not in word (or no more copies) | Letter count capped at confirmed instances |
 
-For duplicate letters: if you guess a word with repeated letters and some are green/yellow while others are grey, the solver infers the exact count of that letter in the target.
+For duplicate letters: if you guess a word with repeated letters and some are green/yellow while others are grey, the solver infers the exact count of that letter in the target and also excludes the grey positions (e.g., "ahead" with the first A yellow and second A grey means there's exactly one A, and it's not at position 1 or 4).
 
 ## Web App
 
